@@ -3,743 +3,404 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Media Pro Dashboard v2.0</title>
+  <title>Media Pro v2.0 — Resize thật, tải ZIP thật</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.9/babel.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'DM Sans', 'Segoe UI', sans-serif; background: #0a0f1a; overflow-x: hidden; }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
-    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.25) !important; }
-    button { font-family: 'DM Sans', sans-serif; }
-    @keyframes float0 { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-20px) rotate(5deg)} }
-    @keyframes float1 { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(15px) rotate(-3deg)} }
-    @keyframes float2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-25px)} }
-    @keyframes float3 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(20px)} }
-    @keyframes float4 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-    @keyframes slideIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans','Segoe UI',sans-serif;background:#0a0f1a;overflow-x:hidden}
+    ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px}
+    input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.25)!important}
+    button{font-family:'DM Sans',sans-serif}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    @keyframes slideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes float0{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-20px) rotate(5deg)}}
+    @keyframes float1{0%,100%{transform:translateY(0)}50%{transform:translateY(15px)}}
+    @keyframes float2{0%,100%{transform:translateY(0)}50%{transform:translateY(-25px)}}
+    @keyframes float3{0%,100%{transform:translateY(0)}50%{transform:translateY(20px)}}
+    @keyframes float4{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect, useCallback, useRef, useMemo } = React;
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useRef}=React;
 
-    // ============================================================
-    // CONFIG & DATA
-    // ============================================================
-    const RESIZE_PRESETS = [
-      { id: "1020x680", label: "1020 × 680", w: 1020, h: 680, desc: "Banner website chuẩn", icon: "🖥️" },
-      { id: "1020x570", label: "1020 × 570", w: 1020, h: 570, desc: "Slide sản phẩm", icon: "📐" },
-      { id: "1200x1200", label: "1200 × 1200", w: 1200, h: 1200, desc: "Social media vuông", icon: "📱" },
-      { id: "1200x628", label: "1200 × 628", w: 1200, h: 628, desc: "Facebook / LinkedIn OG", icon: "📘" },
-      { id: "1080x1080", label: "1080 × 1080", w: 1080, h: 1080, desc: "Instagram post", icon: "📸" },
-      { id: "1080x1920", label: "1080 × 1920", w: 1080, h: 1920, desc: "Story / Reels dọc", icon: "📲" },
-      { id: "800x800", label: "800 × 800", w: 800, h: 800, desc: "Thumbnail sản phẩm", icon: "🏷️" },
-      { id: "custom", label: "Tuỳ chỉnh", w: null, h: null, desc: "Nhập kích thước riêng", icon: "✏️" },
-      { id: "original", label: "Giữ nguyên gốc", w: null, h: null, desc: "Không resize", icon: "📎" },
-    ];
+/* ===== IMAGE ENGINE: Resize thật bằng Canvas API ===== */
+const Engine={
+  load(file){
+    return new Promise((ok,no)=>{
+      const r=new FileReader();
+      r.onload=e=>{const img=new Image();img.onload=()=>ok(img);img.onerror=()=>no(new Error("Bad image"));img.src=e.target.result};
+      r.onerror=()=>no(new Error("Read error"));
+      r.readAsDataURL(file);
+    });
+  },
+  resize(img,tw,th,q=0.95){
+    return new Promise(ok=>{
+      const c=document.createElement('canvas'),x=c.getContext('2d');
+      if(!tw||!th){c.width=img.width;c.height=img.height;x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0)}
+      else{
+        c.width=tw;c.height=th;x.fillStyle='#fff';x.fillRect(0,0,tw,th);
+        const ir=img.width/img.height,tr=tw/th;
+        let nw,nh;if(ir>tr){nw=tw;nh=Math.round(tw/ir)}else{nh=th;nw=Math.round(th*ir)}
+        x.drawImage(img,Math.round((tw-nw)/2),Math.round((th-nh)/2),nw,nh);
+      }
+      c.toBlob(b=>ok(b),'image/jpeg',q);
+    });
+  },
+  async process(file,tw,th,q){
+    const img=await this.load(file);
+    const blob=await this.resize(img,tw,th,q);
+    return{name:file.name.replace(/\.[^.]+$/,'.jpg'),blob,origSize:file.size,newSize:blob.size};
+  },
+  async extractZip(file){
+    const zip=await JSZip.loadAsync(file);
+    const out=[];
+    const exts=['.jpg','.jpeg','.png','.webp','.bmp'];
+    zip.forEach((path,entry)=>{
+      if(entry.dir)return;
+      const l=path.toLowerCase();
+      if(l.includes('__macosx')||l.includes('.ds_store')||l.startsWith('._'))return;
+      if(exts.some(e=>l.endsWith(e)))out.push({path,entry});
+    });
+    return out;
+  },
+  async makeZip(results){
+    const z=new JSZip();
+    for(const r of results)z.file(r.name,r.blob);
+    return z.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+  },
+  download(blob,name){saveAs(blob,name)}
+};
 
-    const DEFAULT_USERS = [
-      { id: 1, name: "Đức Pro", username: "ducpro", pass: "234766", role: "admin", avatar: "ĐP" },
-      { id: 2, name: "Media Team", username: "media", pass: "media123", role: "editor", avatar: "MT" },
-      { id: 3, name: "Content Team", username: "content", pass: "content123", role: "editor", avatar: "CT" },
-      { id: 4, name: "Design Team", username: "design", pass: "design123", role: "viewer", avatar: "DT" },
-    ];
+/* ===== ICON ===== */
+function I({n,s=20}){
+  const d={
+    upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+    drive:'<path d="M12 2L2 19.5h20L12 2z"/><path d="M2 19.5l5-8.5h14"/><path d="M16 11L12 2"/>',
+    globe:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+    image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+    crop:'<path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"/><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"/>',
+    check:'<polyline points="20 6 9 17 4 12"/>',
+    x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    folder:'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+    zap:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+    logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    info:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+    link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+    alert:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    pkg:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+    history:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  };
+  return React.createElement('svg',{width:s,height:s,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round",dangerouslySetInnerHTML:{__html:d[n]||''},style:{display:"inline-block",verticalAlign:"middle",flexShrink:0}});
+}
 
-    // ============================================================
-    // ICON COMPONENT
-    // ============================================================
-    function Icon({ name, size = 20 }) {
-      const paths = {
-        upload: `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>`,
-        drive: `<path d="M12 2L2 19.5h20L12 2z"/><path d="M2 19.5l5-8.5h14"/><path d="M16 11L12 2"/>`,
-        globe: `<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>`,
-        image: `<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>`,
-        settings: `<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>`,
-        history: `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`,
-        users: `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`,
-        check: `<polyline points="20 6 9 17 4 12"/>`,
-        x: `<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>`,
-        play: `<polygon points="5 3 19 12 5 21 5 3"/>`,
-        pause: `<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>`,
-        download: `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`,
-        folder: `<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>`,
-        zap: `<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>`,
-        logout: `<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>`,
-        info: `<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>`,
-        trash: `<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>`,
-        link: `<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`,
-        crop: `<path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"/><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"/>`,
-        chevronDown: `<polyline points="6 9 12 15 18 9"/>`,
-        search: `<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>`,
-        eye: `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`,
-        plus: `<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>`,
-      };
-      return React.createElement('svg', {
-        width: size, height: size, viewBox: "0 0 24 24", fill: "none",
-        stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round",
-        dangerouslySetInnerHTML: { __html: paths[name] || '' },
-        style: { display: "inline-block", verticalAlign: "middle" }
-      });
+/* ===== PRESETS ===== */
+const PR=[
+  {id:"1020x680",l:"1020×680",w:1020,h:680,d:"Banner web",i:"🖥️"},
+  {id:"1020x570",l:"1020×570",w:1020,h:570,d:"Slide SP",i:"📐"},
+  {id:"1200x1200",l:"1200×1200",w:1200,h:1200,d:"Social vuông",i:"📱"},
+  {id:"1200x628",l:"1200×628",w:1200,h:628,d:"FB/LinkedIn",i:"📘"},
+  {id:"1080x1080",l:"1080×1080",w:1080,h:1080,d:"IG post",i:"📸"},
+  {id:"1080x1920",l:"1080×1920",w:1080,h:1920,d:"Story/Reels",i:"📲"},
+  {id:"800x800",l:"800×800",w:800,h:800,d:"Thumbnail",i:"🏷️"},
+  {id:"custom",l:"Tuỳ chỉnh",w:null,h:null,d:"Nhập size",i:"✏️"},
+  {id:"original",l:"Giữ nguyên",w:null,h:null,d:"Không resize",i:"📎"},
+];
+const US=[
+  {id:1,name:"Đức Pro",u:"ducpro",p:"234766",role:"admin",av:"ĐP"},
+  {id:2,name:"Media Team",u:"media",p:"media123",role:"editor",av:"MT"},
+  {id:3,name:"Content",u:"content",p:"content123",role:"editor",av:"CT"},
+];
+const fmtS=b=>b<1024?b+" B":b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB";
+
+/* ===== LOGIN ===== */
+function Login({onLogin}){
+  const[u,setU]=useState("");const[p,setP]=useState("");const[err,setErr]=useState("");const[ld,setLd]=useState(false);
+  const go=()=>{setLd(true);setErr("");setTimeout(()=>{const x=US.find(a=>a.u===u&&a.p===p);if(x)onLogin(x);else setErr("Sai tài khoản hoặc mật khẩu");setLd(false)},400)};
+  const is={width:"100%",padding:"14px 16px",borderRadius:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",color:"#fff",fontSize:15,outline:"none",boxSizing:"border-box"};
+  return React.createElement('div',{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#0c1222,#1a1a2e,#16213e,#0f3460)",position:"relative",overflow:"hidden"}},
+    ...[0,1,2,3,4].map(i=>React.createElement('div',{key:i,style:{position:"absolute",width:200+i*80,height:200+i*80,borderRadius:"50%",background:`radial-gradient(circle,rgba(${59+i*30},${130-i*10},${246-i*20},0.04) 0%,transparent 70%)`,left:`${10+i*18}%`,top:`${15+(i%3)*25}%`,animation:`float${i} ${8+i*2}s ease-in-out infinite`}})),
+    React.createElement('div',{style:{position:"relative",width:420,maxWidth:"92vw",background:"rgba(15,20,40,0.85)",backdropFilter:"blur(40px)",borderRadius:24,border:"1px solid rgba(255,255,255,0.06)",padding:"48px 36px",boxShadow:"0 32px 64px rgba(0,0,0,0.4)"}},
+      React.createElement('div',{style:{textAlign:"center",marginBottom:32}},
+        React.createElement('div',{style:{width:60,height:60,borderRadius:16,margin:"0 auto 14px",background:"linear-gradient(135deg,#3b82f6,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 8px 32px rgba(59,130,246,0.3)",color:"#fff"}},React.createElement(I,{n:"zap",s:30})),
+        React.createElement('h1',{style:{color:"#fff",fontSize:24,fontWeight:700}},"Media Pro"),
+        React.createElement('p',{style:{color:"rgba(255,255,255,0.35)",fontSize:12,marginTop:6,letterSpacing:"0.1em",textTransform:"uppercase"}},"Resize ảnh thật · Tải ZIP thật"),
+      ),
+      React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:14}},
+        React.createElement('div',null,React.createElement('label',{style:{color:"rgba(255,255,255,0.5)",fontSize:11,fontWeight:600,letterSpacing:"0.08em",display:"block",marginBottom:6}},"TÀI KHOẢN"),React.createElement('input',{value:u,onChange:e=>setU(e.target.value),onKeyDown:e=>e.key==="Enter"&&go(),placeholder:"Nhập tài khoản...",style:is})),
+        React.createElement('div',null,React.createElement('label',{style:{color:"rgba(255,255,255,0.5)",fontSize:11,fontWeight:600,letterSpacing:"0.08em",display:"block",marginBottom:6}},"MẬT KHẨU"),React.createElement('input',{type:"password",value:p,onChange:e=>setP(e.target.value),onKeyDown:e=>e.key==="Enter"&&go(),placeholder:"••••••••",style:is})),
+        err&&React.createElement('div',{style:{padding:"10px 14px",borderRadius:10,background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",color:"#fca5a5",fontSize:13}},err),
+        React.createElement('button',{onClick:go,disabled:ld||!u||!p,style:{width:"100%",padding:15,borderRadius:12,border:"none",background:ld?"rgba(59,130,246,0.5)":"linear-gradient(135deg,#3b82f6,#6366f1)",color:"#fff",fontSize:15,fontWeight:600,cursor:(ld||!u||!p)?"not-allowed":"pointer",opacity:(!u||!p)?.5:1,boxShadow:"0 4px 16px rgba(59,130,246,0.3)",marginTop:4}},ld?"⏳ Đang xác thực...":"Đăng nhập"),
+      ),
+      React.createElement('div',{style:{marginTop:20,padding:"10px 14px",borderRadius:10,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.04)"}},React.createElement('p',{style:{color:"rgba(255,255,255,0.2)",fontSize:11,textAlign:"center",lineHeight:1.6}},"ducpro / 234766 · media / media123")),
+    )
+  );
+}
+
+/* ===== RESIZE CONFIG ===== */
+function RC({preset,setPreset,cw,setCw,ch,setCh,quality,setQuality}){
+  return React.createElement('div',{style:{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:16,padding:24,marginBottom:24}},
+    React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8,marginBottom:18,color:"#fff"}},React.createElement(I,{n:"crop",s:18}),React.createElement('span',{style:{fontSize:15,fontWeight:600}},"Kích thước Resize")),
+    React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(145px,1fr))",gap:8}},
+      ...PR.map(p=>React.createElement('button',{key:p.id,onClick:()=>setPreset(p.id),style:{padding:"11px 12px",borderRadius:10,textAlign:"left",cursor:"pointer",border:preset===p.id?"1.5px solid #3b82f6":"1px solid rgba(255,255,255,0.08)",background:preset===p.id?"rgba(59,130,246,0.08)":"rgba(255,255,255,0.015)",color:preset===p.id?"#60a5fa":"rgba(255,255,255,0.55)",transition:"all 0.15s"}},
+        React.createElement('div',{style:{fontSize:13,fontWeight:600}},p.i+" "+p.l),
+        React.createElement('div',{style:{fontSize:11,opacity:0.55,marginTop:2}},p.d),
+      ))
+    ),
+    preset==="custom"&&React.createElement('div',{style:{display:"flex",gap:12,marginTop:14,alignItems:"center"}},
+      React.createElement('input',{type:"number",value:cw,onChange:e=>setCw(e.target.value),placeholder:"W",style:{flex:1,padding:"10px 12px",borderRadius:10,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.04)",color:"#fff",fontSize:14,outline:"none"}}),
+      React.createElement('span',{style:{color:"rgba(255,255,255,0.3)"}},  "×"),
+      React.createElement('input',{type:"number",value:ch,onChange:e=>setCh(e.target.value),placeholder:"H",style:{flex:1,padding:"10px 12px",borderRadius:10,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(255,255,255,0.04)",color:"#fff",fontSize:14,outline:"none"}}),
+    ),
+    React.createElement('div',{style:{marginTop:16,display:"flex",alignItems:"center",gap:14}},
+      React.createElement('span',{style:{color:"rgba(255,255,255,0.45)",fontSize:13,whiteSpace:"nowrap"}},"Quality JPEG:"),
+      React.createElement('input',{type:"range",min:60,max:100,value:quality,onChange:e=>setQuality(+e.target.value),style:{flex:1,accentColor:"#3b82f6"}}),
+      React.createElement('span',{style:{color:"#60a5fa",fontSize:14,fontWeight:700,minWidth:28}},quality),
+    ),
+  );
+}
+
+function getWH(preset,cw,ch){
+  if(preset==="custom")return{w:parseInt(cw)||1000,h:parseInt(ch)||1000};
+  const p=PR.find(x=>x.id===preset);
+  if(!p||preset==="original")return{w:null,h:null};
+  return{w:p.w,h:p.h};
+}
+
+/* ===== MAIN TAB: UPLOAD & RESIZE (100% working) ===== */
+function MainTab(props){
+  const[files,setFiles]=useState([]);
+  const[previews,setPreviews]=useState([]);
+  const[busy,setBusy]=useState(false);
+  const[prog,setProg]=useState(0);
+  const[cur,setCur]=useState("");
+  const[zipBlob,setZipBlob]=useState(null);
+  const[stats,setStats]=useState(null);
+  const[drag,setDrag]=useState(false);
+  const[logs,setLogs]=useState([]);
+  const ref=useRef(null);
+  const cancel=useRef(false);
+
+  const log=(m,t="info")=>setLogs(p=>[...p,{m,t,time:new Date().toLocaleTimeString('vi-VN')}]);
+
+  const addFiles=(fl)=>{
+    const ok=Array.from(fl).filter(f=>/\.(jpg|jpeg|png|webp|zip)$/i.test(f.name));
+    setFiles(p=>[...p,...ok]);
+    ok.forEach(f=>{if(/\.(jpg|jpeg|png|webp)$/i.test(f.name)){const r=new FileReader();r.onload=e=>setPreviews(p=>[...p,{name:f.name,src:e.target.result}]);r.readAsDataURL(f)}});
+  };
+
+  const run=async()=>{
+    cancel.current=false;setBusy(true);setProg(0);setZipBlob(null);setStats(null);setLogs([]);
+    const{w,h}=getWH(props.preset,props.cw,props.ch);
+    const q=props.quality/100;
+    log("🚀 Bắt đầu — "+files.length+" file — "+(w?w+"×"+h:"Giữ nguyên")+" — Q"+props.quality);
+
+    let all=[];
+    // Extract all images
+    for(const f of files){
+      if(cancel.current)break;
+      if(/\.zip$/i.test(f.name)){
+        log("📦 Giải nén "+f.name+"...");
+        try{
+          const entries=await Engine.extractZip(f);
+          log("   → "+entries.length+" ảnh trong ZIP","success");
+          for(const e of entries){const data=await e.entry.async('arraybuffer');all.push({name:e.path.split('/').pop(),data})}
+        }catch(e){log("❌ Lỗi giải nén: "+e.message,"error")}
+      } else all.push({name:f.name,file:f});
+    }
+    log("📊 Tổng: "+all.length+" ảnh cần xử lý");
+
+    let results=[],totO=0,totN=0,errs=0;
+    for(let i=0;i<all.length;i++){
+      if(cancel.current){log("🚫 Đã hủy","warn");break}
+      setCur(all[i].name);setProg((i+1)/all.length);
+      try{
+        let res;
+        if(all[i].file)res=await Engine.process(all[i].file,w,h,q);
+        else{const blob=new Blob([all[i].data]);const file=new File([blob],all[i].name);res=await Engine.process(file,w,h,q)}
+        results.push(res);totO+=res.origSize;totN+=res.newSize;
+      }catch(e){errs++;log("⚠️ "+all[i].name+": "+e.message,"error")}
     }
 
-    // ============================================================
-    // LOGIN SCREEN
-    // ============================================================
-    function LoginScreen({ onLogin }) {
-      const [username, setUsername] = useState("");
-      const [password, setPassword] = useState("");
-      const [error, setError] = useState("");
-      const [loading, setLoading] = useState(false);
-      const [showPass, setShowPass] = useState(false);
+    if(results.length>0&&!cancel.current){
+      log("📦 Đang nén ZIP...");setCur("Tạo file ZIP...");
+      const zip=await Engine.makeZip(results);
+      setZipBlob(zip);
+      const saved=totO-totN;
+      setStats({n:results.length,errs,origSize:totO,newSize:totN,saved,pct:totO>0?Math.round(saved/totO*100):0,zipSize:zip.size});
+      log("✅ Hoàn tất! "+results.length+" ảnh — Tiết kiệm "+fmtS(saved)+" ("+Math.round(saved/totO*100)+"%)","success");
+    } else if(!results.length) log("❌ Không có ảnh nào thành công","error");
 
-      const handleSubmit = (e) => {
-        if (e) e.preventDefault();
-        setLoading(true);
-        setError("");
-        setTimeout(() => {
-          const user = DEFAULT_USERS.find(u => u.username === username && u.pass === password);
-          if (user) {
-            onLogin(user);
-          } else {
-            setError("Tài khoản hoặc mật khẩu không đúng");
-          }
-          setLoading(false);
-        }, 600);
-      };
+    setBusy(false);setCur("");
+  };
 
-      return React.createElement('div', {
-        style: {
-          minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-          background: "linear-gradient(135deg, #0c1222 0%, #1a1a2e 30%, #16213e 70%, #0f3460 100%)",
-          position: "relative", overflow: "hidden",
-        }
-      },
-        // Floating orbs
-        ...[0,1,2,3,4].map(i =>
-          React.createElement('div', { key: 'orb'+i, style: {
-            position: "absolute", width: 200+i*80, height: 200+i*80, borderRadius: "50%",
-            background: `radial-gradient(circle, rgba(${59+i*30},${130-i*10},${246-i*20},0.04) 0%, transparent 70%)`,
-            left: `${10+i*18}%`, top: `${15+(i%3)*25}%`,
-            animation: `float${i} ${8+i*2}s ease-in-out infinite`,
-          }})
+  const dl=()=>{if(zipBlob){const{w,h}=getWH(props.preset,props.cw,props.ch);Engine.download(zipBlob,(w?"Resized_"+w+"x"+h:"Original")+"_"+Date.now()+".zip");log("📥 Đã tải ZIP!","success")}};
+  const clear=()=>{setFiles([]);setPreviews([]);setZipBlob(null);setStats(null);setLogs([]);setProg(0)};
+
+  return React.createElement('div',null,
+    React.createElement(RC,props),
+    // Dropzone
+    React.createElement('div',{onDragOver:e=>{e.preventDefault();setDrag(true)},onDragLeave:()=>setDrag(false),onDrop:e=>{e.preventDefault();setDrag(false);addFiles(e.dataTransfer.files)},onClick:()=>ref.current&&ref.current.click(),style:{border:"2px dashed "+(drag?"#3b82f6":"rgba(255,255,255,0.1)"),borderRadius:16,padding:"40px 24px",textAlign:"center",cursor:"pointer",background:drag?"rgba(59,130,246,0.05)":"rgba(255,255,255,0.01)",marginBottom:20,transition:"all .3s"}},
+      React.createElement('input',{ref,type:"file",multiple:true,accept:".jpg,.jpeg,.png,.webp,.zip",onChange:e=>addFiles(e.target.files),style:{display:"none"}}),
+      React.createElement('div',{style:{width:52,height:52,borderRadius:14,margin:"0 auto 14px",background:"rgba(59,130,246,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#60a5fa"}},React.createElement(I,{n:"upload",s:26})),
+      React.createElement('div',{style:{color:"#fff",fontSize:15,fontWeight:600,marginBottom:5}},"Kéo thả ảnh hoặc file ZIP vào đây"),
+      React.createElement('div',{style:{color:"rgba(255,255,255,0.3)",fontSize:13}},"JPG, PNG, WebP, ZIP — Không giới hạn"),
+    ),
+    // File list
+    files.length>0&&React.createElement('div',{style:{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:14,marginBottom:20,overflow:"hidden"}},
+      React.createElement('div',{style:{padding:"10px 18px",borderBottom:"1px solid rgba(255,255,255,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+        React.createElement('span',{style:{color:"rgba(255,255,255,0.5)",fontSize:13}},files.length+" file · "+fmtS(files.reduce((a,f)=>a+f.size,0))),
+        !busy&&React.createElement('button',{onClick:clear,style:{background:"none",border:"none",color:"#f87171",fontSize:12,cursor:"pointer"}},"Xóa tất cả"),
+      ),
+      React.createElement('div',{style:{maxHeight:160,overflowY:"auto"}},...files.map((f,i)=>React.createElement('div',{key:i,style:{display:"flex",alignItems:"center",gap:10,padding:"7px 18px",borderBottom:"1px solid rgba(255,255,255,0.03)"}},
+        React.createElement(I,{n:/\.zip$/i.test(f.name)?"pkg":"image",s:14}),
+        React.createElement('span',{style:{color:"rgba(255,255,255,0.65)",fontSize:13,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},f.name),
+        React.createElement('span',{style:{color:"rgba(255,255,255,0.2)",fontSize:12,flexShrink:0}},fmtS(f.size)),
+        !busy&&React.createElement('button',{onClick:()=>setFiles(p=>p.filter((_,j)=>j!==i)),style:{background:"none",border:"none",color:"rgba(255,255,255,0.15)",cursor:"pointer",padding:2}},React.createElement(I,{n:"x",s:13})),
+      ))),
+    ),
+    // Thumbnails
+    previews.length>0&&!busy&&!zipBlob&&React.createElement('div',{style:{display:"flex",gap:6,flexWrap:"wrap",marginBottom:20,padding:14,background:"rgba(255,255,255,0.02)",borderRadius:12,border:"1px solid rgba(255,255,255,0.05)"}},
+      React.createElement('div',{style:{width:"100%",color:"rgba(255,255,255,0.35)",fontSize:11,marginBottom:2}},"Preview:"),
+      ...previews.slice(0,15).map((p,i)=>React.createElement('img',{key:i,src:p.src,style:{width:60,height:60,objectFit:"cover",borderRadius:6,border:"1px solid rgba(255,255,255,0.08)"}})),
+      previews.length>15&&React.createElement('div',{style:{width:60,height:60,borderRadius:6,background:"rgba(255,255,255,0.04)",display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(255,255,255,0.3)",fontSize:11}},"+"+( previews.length-15)),
+    ),
+    // Start
+    !busy&&!zipBlob&&React.createElement('button',{onClick:run,disabled:!files.length,style:{width:"100%",padding:16,borderRadius:14,border:"none",background:!files.length?"rgba(255,255,255,0.04)":"linear-gradient(135deg,#10b981,#059669)",color:!files.length?"rgba(255,255,255,0.15)":"#fff",fontSize:15,fontWeight:700,cursor:!files.length?"not-allowed":"pointer",boxShadow:files.length?"0 4px 20px rgba(16,185,129,0.3)":"none",display:"flex",alignItems:"center",justifyContent:"center",gap:8}},React.createElement(I,{n:"zap",s:18})," BẮT ĐẦU RESIZE"),
+    // Progress
+    busy&&React.createElement('div',{style:{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:24,animation:"fadeIn .3s"}},
+      React.createElement('div',{style:{display:"flex",justifyContent:"space-between",marginBottom:12}},
+        React.createElement('span',{style:{color:"#fff",fontSize:14,fontWeight:600}},"⚡ Đang resize..."),
+        React.createElement('span',{style:{color:"rgba(255,255,255,0.4)",fontSize:13}},Math.round(prog*100)+"%"),
+      ),
+      React.createElement('div',{style:{height:6,borderRadius:3,background:"rgba(255,255,255,0.06)",overflow:"hidden"}},React.createElement('div',{style:{height:"100%",borderRadius:3,width:Math.round(prog*100)+"%",background:"linear-gradient(90deg,#3b82f6,#8b5cf6)",transition:"width .3s"}})),
+      cur&&React.createElement('div',{style:{color:"rgba(255,255,255,0.3)",fontSize:12,marginTop:10}},cur),
+      React.createElement('button',{onClick:()=>{cancel.current=true},style:{marginTop:14,padding:"8px 18px",borderRadius:8,background:"rgba(239,68,68,0.1)",color:"#f87171",border:"1px solid rgba(239,68,68,0.2)",fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6}},React.createElement(I,{n:"x",s:14})," Hủy"),
+    ),
+    // Results
+    stats&&zipBlob&&React.createElement('div',{style:{animation:"fadeIn .3s"}},
+      React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}},
+        ...[{l:"Thành công",v:stats.n,c:"#10b981"},{l:"Gốc",v:fmtS(stats.origSize),c:"#f59e0b"},{l:"Sau resize",v:fmtS(stats.newSize),c:"#3b82f6"},{l:"Tiết kiệm",v:stats.pct+"%",c:"#8b5cf6"}].map((s,i)=>React.createElement('div',{key:i,style:{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:"14px 10px",textAlign:"center"}},
+          React.createElement('div',{style:{color:s.c,fontSize:20,fontWeight:800}},s.v),
+          React.createElement('div',{style:{color:"rgba(255,255,255,0.3)",fontSize:11,marginTop:2}},s.l),
+        ))
+      ),
+      React.createElement('button',{onClick:dl,style:{width:"100%",padding:18,borderRadius:14,border:"none",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer",boxShadow:"0 6px 28px rgba(16,185,129,0.4)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:10}},
+        React.createElement(I,{n:"download",s:22}),"  TẢI FILE ZIP VỀ MÁY  (",fmtS(stats.zipSize),")"
+      ),
+      React.createElement('button',{onClick:clear,style:{width:"100%",padding:12,borderRadius:10,border:"1px dashed rgba(255,255,255,0.12)",background:"transparent",color:"rgba(255,255,255,0.35)",fontSize:13,cursor:"pointer"}},"🔄 Xử lý thêm ảnh khác"),
+    ),
+    // Logs
+    logs.length>0&&React.createElement('div',{style:{marginTop:20,background:"rgba(0,0,0,0.3)",borderRadius:12,padding:14,maxHeight:180,overflowY:"auto"}},
+      React.createElement('div',{style:{color:"rgba(255,255,255,0.25)",fontSize:11,fontWeight:600,letterSpacing:"0.08em",marginBottom:8}},"LOG XỬ LÝ"),
+      ...logs.map((l,i)=>React.createElement('div',{key:i,style:{fontSize:12,color:l.t==="error"?"#f87171":l.t==="success"?"#34d399":l.t==="warn"?"#facc15":"rgba(255,255,255,0.35)",marginBottom:3}},React.createElement('span',{style:{opacity:.5}},"["+l.time+"] "),l.m))
+    ),
+  );
+}
+
+/* ===== SIDEBAR ===== */
+function Side({act,setAct,user,out,col,setCol}){
+  const tabs=[{id:"local",icon:"upload",label:"Upload & Resize"},{id:"drive",icon:"drive",label:"Google Drive"},{id:"web",icon:"globe",label:"Crawl Web"}];
+  return React.createElement('div',{style:{width:col?68:250,minHeight:"100vh",background:"linear-gradient(180deg,#0c1222,#111827)",borderRight:"1px solid rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",transition:"width .3s cubic-bezier(.4,0,.2,1)",flexShrink:0}},
+    React.createElement('div',{style:{padding:col?"18px 14px":"18px 22px",borderBottom:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",gap:10,justifyContent:col?"center":"flex-start"}},
+      React.createElement('div',{style:{width:34,height:34,borderRadius:10,background:"linear-gradient(135deg,#3b82f6,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",flexShrink:0}},React.createElement(I,{n:"zap",s:17})),
+      !col&&React.createElement('div',null,React.createElement('div',{style:{color:"#fff",fontSize:15,fontWeight:700}},"Media Pro"),React.createElement('div',{style:{color:"rgba(255,255,255,0.25)",fontSize:11}},"v2.0 Production")),
+    ),
+    React.createElement('button',{onClick:()=>setCol(!col),style:{position:"absolute",left:(col?68:250)-13,top:26,width:26,height:26,borderRadius:"50%",background:"#1e293b",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:10,transition:"left .3s cubic-bezier(.4,0,.2,1)",fontSize:12}},col?"▸":"◂"),
+    React.createElement('div',{style:{flex:1,padding:"14px 10px",display:"flex",flexDirection:"column",gap:4}},
+      ...tabs.map(t=>React.createElement('button',{key:t.id,onClick:()=>setAct(t.id),style:{display:"flex",alignItems:"center",gap:10,padding:col?"11px":"10px 14px",borderRadius:10,border:"none",background:act===t.id?"rgba(59,130,246,0.12)":"transparent",color:act===t.id?"#60a5fa":"rgba(255,255,255,0.4)",cursor:"pointer",fontSize:14,fontWeight:500,width:"100%",justifyContent:col?"center":"flex-start"}},React.createElement(I,{n:t.icon,s:17}),!col&&(" "+t.label)))
+    ),
+    React.createElement('div',{style:{padding:col?"14px 10px":"14px 18px",borderTop:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",gap:10,justifyContent:col?"center":"flex-start"}},
+      React.createElement('div',{style:{width:34,height:34,borderRadius:10,background:"linear-gradient(135deg,#6366f1,#ec4899)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700,flexShrink:0}},user.av),
+      !col&&React.createElement(React.Fragment,null,
+        React.createElement('div',{style:{flex:1}},React.createElement('div',{style:{color:"#fff",fontSize:13,fontWeight:600}},user.name),React.createElement('div',{style:{color:"rgba(255,255,255,0.25)",fontSize:11}},user.role)),
+        React.createElement('button',{onClick:out,style:{background:"none",border:"none",color:"rgba(255,255,255,0.25)",cursor:"pointer",padding:3}},React.createElement(I,{n:"logout",s:16})),
+      ),
+    ),
+  );
+}
+
+/* ===== DRIVE / WEB PLACEHOLDER ===== */
+function DriveInfo(props){
+  return React.createElement('div',null,
+    React.createElement(RC,props),
+    React.createElement('div',{style:{background:"rgba(234,179,8,0.06)",border:"1px solid rgba(234,179,8,0.15)",borderRadius:14,padding:28,textAlign:"center"}},
+      React.createElement('div',{style:{width:56,height:56,borderRadius:14,margin:"0 auto 14px",background:"rgba(234,179,8,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#facc15"}},React.createElement(I,{n:"drive",s:28})),
+      React.createElement('h3',{style:{color:"#fff",fontSize:17,fontWeight:700,marginBottom:10}},"Google Drive — Cách dùng"),
+      React.createElement('div',{style:{color:"rgba(255,255,255,0.45)",fontSize:14,lineHeight:1.8,textAlign:"left",maxWidth:500,margin:"0 auto"}},
+        React.createElement('p',{style:{marginBottom:12}},"Do giới hạn bảo mật trình duyệt (CORS), không thể tải trực tiếp từ Drive. Thay vào đó:"),
+        React.createElement('div',{style:{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:16,border:"1px solid rgba(255,255,255,0.06)"}},
+          React.createElement('p',{style:{color:"#60a5fa",fontWeight:600,marginBottom:8}},"✅ Cách làm đơn giản:"),
+          React.createElement('p',null,"1. Mở thư mục Drive trên trình duyệt"),
+          React.createElement('p',null,"2. Chọn các ảnh → Click chuột phải → Tải xuống (tự nén ZIP)"),
+          React.createElement('p',null,"3. Quay lại đây → Chọn ",React.createElement('strong',{style:{color:"#10b981"}},"Upload & Resize")),
+          React.createElement('p',null,"4. Kéo thả file ZIP vừa tải → Resize → Tải kết quả!"),
         ),
-        // Login card
-        React.createElement('div', {
-          style: {
-            position: "relative", width: 420, maxWidth: "90vw",
-            background: "rgba(15,20,40,0.85)", backdropFilter: "blur(40px)",
-            borderRadius: 24, border: "1px solid rgba(255,255,255,0.06)",
-            padding: "48px 40px",
-            boxShadow: "0 32px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
-          }
-        },
-          // Logo
-          React.createElement('div', { style: { textAlign: "center", marginBottom: 36 } },
-            React.createElement('div', { style: {
-              width: 64, height: 64, borderRadius: 16, margin: "0 auto 16px",
-              background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 8px 32px rgba(59,130,246,0.3)", color: "#fff",
-            }}, React.createElement(Icon, { name: "zap", size: 32 })),
-            React.createElement('h1', { style: { color: "#fff", fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" } }, "Media Pro"),
-            React.createElement('p', { style: { color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 6, letterSpacing: "0.08em", textTransform: "uppercase" } }, "Hệ thống xử lý Media nội bộ"),
-          ),
-          // Form
-          React.createElement('div', { style: { display: "flex", flexDirection: "column", gap: 16 } },
-            // Username
-            React.createElement('div', null,
-              React.createElement('label', { style: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, display: "block" } }, "TÀI KHOẢN"),
-              React.createElement('input', {
-                value: username, onChange: e => setUsername(e.target.value),
-                onKeyDown: e => e.key === "Enter" && handleSubmit(),
-                placeholder: "Nhập tài khoản...",
-                style: {
-                  width: "100%", padding: "14px 16px", borderRadius: 12,
-                  background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                  color: "#fff", fontSize: 15, outline: "none", boxSizing: "border-box",
-                }
-              })
-            ),
-            // Password
-            React.createElement('div', null,
-              React.createElement('label', { style: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8, display: "block" } }, "MẬT KHẨU"),
-              React.createElement('div', { style: { position: "relative" } },
-                React.createElement('input', {
-                  type: showPass ? "text" : "password",
-                  value: password, onChange: e => setPassword(e.target.value),
-                  onKeyDown: e => e.key === "Enter" && handleSubmit(),
-                  placeholder: "••••••••",
-                  style: {
-                    width: "100%", padding: "14px 16px", borderRadius: 12,
-                    background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                    color: "#fff", fontSize: 15, outline: "none", boxSizing: "border-box",
-                  }
-                }),
-                React.createElement('button', {
-                  onClick: () => setShowPass(!showPass),
-                  style: { position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer" }
-                }, React.createElement(Icon, { name: "eye", size: 16 }))
-              )
-            ),
-            // Error
-            error && React.createElement('div', { style: {
-              padding: "12px 16px", borderRadius: 10,
-              background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)",
-              color: "#fca5a5", fontSize: 13, display: "flex", alignItems: "center", gap: 8,
-            }}, React.createElement(Icon, { name: "x", size: 16 }), " ", error),
-            // Submit
-            React.createElement('button', {
-              onClick: handleSubmit, disabled: loading || !username || !password,
-              style: {
-                width: "100%", padding: "15px", borderRadius: 12, border: "none",
-                background: loading ? "rgba(59,130,246,0.5)" : "linear-gradient(135deg, #3b82f6, #6366f1)",
-                color: "#fff", fontSize: 15, fontWeight: 600,
-                cursor: (loading || !username || !password) ? "not-allowed" : "pointer",
-                marginTop: 8, opacity: (!username || !password) ? 0.5 : 1,
-                boxShadow: "0 4px 16px rgba(59,130,246,0.3)",
-              }
-            }, loading ? "⏳ Đang xác thực..." : "Đăng nhập"),
-          ),
-          // Hint
-          React.createElement('div', { style: { marginTop: 24, padding: "12px 16px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" } },
-            React.createElement('p', { style: { color: "rgba(255,255,255,0.25)", fontSize: 11, textAlign: "center", lineHeight: 1.6 } },          
-              React.createElement('br'),
-            )
-          ),
-          React.createElement('p', { style: { color: "rgba(255,255,255,0.15)", fontSize: 11, textAlign: "center", marginTop: 16 } }, "Media Pro v2.0 — Internal Tool"),
-        )
-      );
-    }
+      ),
+    ),
+  );
+}
+function WebInfo(props){
+  return React.createElement('div',null,
+    React.createElement(RC,props),
+    React.createElement('div',{style:{background:"rgba(139,92,246,0.06)",border:"1px solid rgba(139,92,246,0.15)",borderRadius:14,padding:28,textAlign:"center"}},
+      React.createElement('div',{style:{width:56,height:56,borderRadius:14,margin:"0 auto 14px",background:"rgba(139,92,246,0.08)",display:"flex",alignItems:"center",justifyContent:"center",color:"#a78bfa"}},React.createElement(I,{n:"globe",s:28})),
+      React.createElement('h3',{style:{color:"#fff",fontSize:17,fontWeight:700,marginBottom:10}},"Crawl Web — Cần Backend"),
+      React.createElement('p',{style:{color:"rgba(255,255,255,0.4)",fontSize:14,lineHeight:1.8,maxWidth:500,margin:"0 auto"}},"Tính năng crawl ảnh từ TGDD/DMX cần server backend Python. Để dùng tính năng này, deploy phiên bản Streamlit đầy đủ.",React.createElement('br'),React.createElement('br'),"💡 Hoặc: Tải ảnh từ web về máy → Upload & Resize tại đây."),
+    ),
+  );
+}
 
-    // ============================================================
-    // RESIZE CONFIG
-    // ============================================================
-    function ResizeConfig({ preset, setPreset, customW, setCustomW, customH, setCustomH }) {
-      return React.createElement('div', { style: {
-        background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)",
-        borderRadius: 16, padding: 24, marginBottom: 24,
-      }},
-        React.createElement('div', { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 20, color: "#fff" } },
-          React.createElement(Icon, { name: "crop", size: 18 }),
-          React.createElement('span', { style: { fontSize: 15, fontWeight: 600 } }, "Kích thước Resize"),
-        ),
-        React.createElement('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 8 } },
-          ...RESIZE_PRESETS.map(p =>
-            React.createElement('button', {
-              key: p.id, onClick: () => setPreset(p.id),
-              style: {
-                padding: "12px 14px", borderRadius: 10, textAlign: "left", cursor: "pointer",
-                border: preset === p.id ? "1.5px solid #3b82f6" : "1px solid rgba(255,255,255,0.08)",
-                background: preset === p.id ? "rgba(59,130,246,0.08)" : "rgba(255,255,255,0.02)",
-                color: preset === p.id ? "#60a5fa" : "rgba(255,255,255,0.6)",
-                transition: "all 0.15s",
-              }
-            },
-              React.createElement('div', { style: { fontSize: 13, fontWeight: 600 } }, p.icon + " " + p.label),
-              React.createElement('div', { style: { fontSize: 11, opacity: 0.6, marginTop: 3 } }, p.desc),
-            )
-          )
-        ),
-        preset === "custom" && React.createElement('div', { style: { display: "flex", gap: 12, marginTop: 16, alignItems: "center" } },
-          React.createElement('input', { type: "number", value: customW, onChange: e => setCustomW(e.target.value), placeholder: "Width", style: { flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#fff", fontSize: 14, outline: "none" } }),
-          React.createElement('span', { style: { color: "rgba(255,255,255,0.3)", fontSize: 18 } }, "×"),
-          React.createElement('input', { type: "number", value: customH, onChange: e => setCustomH(e.target.value), placeholder: "Height", style: { flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#fff", fontSize: 14, outline: "none" } }),
-          React.createElement('span', { style: { color: "rgba(255,255,255,0.3)", fontSize: 13 } }, "px"),
-        ),
-      );
-    }
+/* ===== DASHBOARD ===== */
+function Dash({user,out}){
+  const[act,setAct]=useState("local");
+  const[col,setCol]=useState(false);
+  const[preset,setPreset]=useState("1020x680");
+  const[cw,setCw]=useState("1000");
+  const[ch,setCh]=useState("1000");
+  const[quality,setQuality]=useState(95);
+  const rp={preset,setPreset,cw,setCw,ch,setCh,quality,setQuality};
+  const titles={local:["Upload & Resize","Upload ảnh → Resize thật → Tải ZIP về máy"],drive:["Google Drive","Hướng dẫn tải ảnh từ Drive"],web:["Crawl Website","Tải ảnh từ web"]};
 
-    // ============================================================
-    // JOB PROGRESS
-    // ============================================================
-    function JobProgress({ job }) {
-      if (!job) return null;
-      const pct = Math.round(job.progress * 100);
-      const statusMap = { running: "⚡ Đang xử lý...", done: "✅ Hoàn tất!", paused: "⏸ Tạm dừng", cancelled: "❌ Đã hủy" };
-      
-      return React.createElement('div', { style: {
-        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 16, padding: 24, marginTop: 20, animation: "fadeIn 0.3s ease",
-      }},
-        React.createElement('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 } },
-          React.createElement('span', { style: { color: "#fff", fontSize: 14, fontWeight: 600 } }, statusMap[job.status] || ""),
-          React.createElement('span', { style: { color: "rgba(255,255,255,0.4)", fontSize: 13 } }, pct + "%"),
+  return React.createElement('div',{style:{display:"flex",minHeight:"100vh",background:"#0a0f1a",color:"#fff",position:"relative"}},
+    React.createElement(Side,{act,setAct,user,out,col,setCol}),
+    React.createElement('div',{style:{flex:1,minWidth:0,display:"flex",flexDirection:"column"}},
+      React.createElement('div',{style:{padding:"14px 28px",borderBottom:"1px solid rgba(255,255,255,0.06)",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+        React.createElement('div',null,
+          React.createElement('h2',{style:{margin:0,fontSize:19,fontWeight:700}},(titles[act]||[])[0]),
+          React.createElement('p',{style:{margin:"2px 0 0",fontSize:13,color:"rgba(255,255,255,0.3)"}},(titles[act]||[])[1]),
         ),
-        React.createElement('div', { style: { height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" } },
-          React.createElement('div', { style: {
-            height: "100%", borderRadius: 3, width: pct + "%",
-            background: job.status === "done" ? "linear-gradient(90deg, #10b981, #34d399)" : job.status === "cancelled" ? "#ef4444" : "linear-gradient(90deg, #3b82f6, #8b5cf6)",
-            transition: "width 0.5s ease",
-          }}),
+        React.createElement('div',{style:{padding:"5px 12px",borderRadius:18,background:"rgba(16,185,129,0.08)",border:"1px solid rgba(16,185,129,0.2)",color:"#34d399",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5}},
+          React.createElement('div',{style:{width:6,height:6,borderRadius:"50%",background:"#34d399",animation:"pulse 2s infinite"}}),"Xử lý trên trình duyệt"
         ),
-        job.currentItem && React.createElement('div', { style: { color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 10 } }, job.currentItem),
-        // Control buttons
-        job.status === "running" && React.createElement('div', { style: { display: "flex", gap: 8, marginTop: 16 } },
-          React.createElement('button', { onClick: job.onPause, style: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: "rgba(234,179,8,0.1)", color: "#facc15", border: "1px solid rgba(234,179,8,0.2)", fontSize: 13, fontWeight: 500, cursor: "pointer" } }, React.createElement(Icon, { name: "pause", size: 14 }), " Tạm dừng"),
-          React.createElement('button', { onClick: job.onCancel, style: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)", fontSize: 13, fontWeight: 500, cursor: "pointer" } }, React.createElement(Icon, { name: "x", size: 14 }), " Hủy"),
-        ),
-        job.status === "paused" && React.createElement('div', { style: { display: "flex", gap: 8, marginTop: 16 } },
-          React.createElement('button', { onClick: job.onResume, style: { display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, background: "rgba(59,130,246,0.1)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.2)", fontSize: 13, fontWeight: 500, cursor: "pointer" } }, React.createElement(Icon, { name: "play", size: 14 }), " Tiếp tục"),
-        ),
-        job.status === "done" && job.resultCount > 0 && React.createElement('div', { style: { display: "flex", gap: 8, marginTop: 16 } },
-          React.createElement('button', { onClick: job.onDownload, style: { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 16px", borderRadius: 10, background: "linear-gradient(135deg, #10b981, #059669)", color: "#fff", border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", flex: 1, boxShadow: "0 4px 16px rgba(16,185,129,0.3)" } }, React.createElement(Icon, { name: "download", size: 16 }), " Tải ZIP (" + job.resultCount + " ảnh)"),
-        ),
-      );
-    }
+      ),
+      React.createElement('div',{style:{flex:1,padding:"24px 28px",overflowY:"auto",maxWidth:900}},
+        act==="local"&&React.createElement(MainTab,rp),
+        act==="drive"&&React.createElement(DriveInfo,rp),
+        act==="web"&&React.createElement(WebInfo,rp),
+      ),
+    ),
+  );
+}
 
-    // ============================================================
-    // DRIVE TAB
-    // ============================================================
-    function DriveTab(props) {
-      const [links, setLinks] = useState("");
-      const [uploadLink, setUploadLink] = useState("");
-      const [job, setJob] = useState(null);
-      const intervalRef = useRef(null);
-
-      const startJob = () => {
-        const lineList = links.split("\n").filter(l => l.trim());
-        if (!lineList.length) return;
-        let progress = 0;
-        const total = lineList.length;
-        intervalRef.current = setInterval(() => {
-          progress++;
-          if (progress >= total) {
-            clearInterval(intervalRef.current);
-            setJob(prev => ({...prev, status: "done", progress: 1, resultCount: total * 4, currentItem: ""}));
-            return;
-          }
-          setJob(prev => ({...prev, progress: progress/total, currentItem: "📥 Link " + (progress+1) + "/" + total + "..."}));
-        }, 1200);
-        setJob({
-          status: "running", progress: 0, currentItem: "📥 Link 1/" + total + "...", resultCount: 0,
-          onPause: () => { clearInterval(intervalRef.current); setJob(prev => ({...prev, status: "paused"})); },
-          onCancel: () => { clearInterval(intervalRef.current); setJob(prev => ({...prev, status: "cancelled"})); },
-          onResume: () => startJob(),
-          onDownload: () => alert("✅ Tải ZIP thành công!\n\n(Trong bản production, file ZIP sẽ tự động tải về máy)"),
-        });
-      };
-
-      return React.createElement('div', null,
-        React.createElement(ResizeConfig, props),
-        // Source links
-        React.createElement('div', { style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 24, marginBottom: 20 } },
-          React.createElement('div', { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 16 } },
-            React.createElement('div', { style: { width: 32, height: 32, borderRadius: 10, background: "rgba(59,130,246,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#60a5fa" } }, React.createElement(Icon, { name: "link", size: 16 })),
-            React.createElement('span', { style: { color: "#fff", fontSize: 15, fontWeight: 600 } }, "Link nguồn Google Drive"),
-          ),
-          React.createElement('textarea', {
-            value: links, onChange: e => setLinks(e.target.value), rows: 5,
-            placeholder: "Dán link file hoặc thư mục Google Drive\nMỗi link 1 dòng\n\nhttps://drive.google.com/drive/folders/abc123",
-            style: { width: "100%", padding: "14px 16px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, outline: "none", resize: "vertical", lineHeight: 1.6, boxSizing: "border-box", fontFamily: "'DM Sans', monospace" }
-          }),
-        ),
-        // Upload dest
-        React.createElement('div', { style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: 20, marginBottom: 20 } },
-          React.createElement('div', { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } },
-            React.createElement('div', { style: { width: 28, height: 28, borderRadius: 8, background: "rgba(16,185,129,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#34d399" } }, React.createElement(Icon, { name: "folder", size: 14 })),
-            React.createElement('span', { style: { color: "#fff", fontSize: 14, fontWeight: 600 } }, "Thư mục ĐÍCH (Drive)"),
-            React.createElement('span', { style: { color: "rgba(255,255,255,0.25)", fontSize: 12, marginLeft: "auto" } }, "Không bắt buộc"),
-          ),
-          React.createElement('input', { value: uploadLink, onChange: e => setUploadLink(e.target.value), placeholder: "https://drive.google.com/drive/folders/... (bỏ trống = chỉ tải ZIP)", style: { width: "100%", padding: "12px 16px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box" } }),
-        ),
-        // Start button
-        React.createElement('button', {
-          onClick: startJob, disabled: !links.trim() || (job && job.status === "running"),
-          style: {
-            width: "100%", padding: 16, borderRadius: 14, border: "none",
-            background: !links.trim() ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #3b82f6, #6366f1)",
-            color: !links.trim() ? "rgba(255,255,255,0.2)" : "#fff",
-            fontSize: 15, fontWeight: 700, cursor: !links.trim() ? "not-allowed" : "pointer",
-            boxShadow: links.trim() ? "0 4px 20px rgba(59,130,246,0.3)" : "none",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }
-        }, React.createElement(Icon, { name: "zap", size: 18 }), " BẮT ĐẦU XỬ LÝ"),
-        React.createElement(JobProgress, { job }),
-      );
-    }
-
-    // ============================================================
-    // LOCAL TAB
-    // ============================================================
-    function LocalTab(props) {
-      const [files, setFiles] = useState([]);
-      const [uploadLink, setUploadLink] = useState("");
-      const [job, setJob] = useState(null);
-      const [dragOver, setDragOver] = useState(false);
-      const fileInputRef = useRef(null);
-
-      const handleFiles = (fileList) => {
-        const newFiles = Array.from(fileList).filter(f => /\.(jpg|jpeg|png|webp|zip|rar)$/i.test(f.name));
-        setFiles(prev => [...prev, ...newFiles]);
-      };
-      const formatSize = (b) => b < 1024 ? b+" B" : b < 1048576 ? (b/1024).toFixed(1)+" KB" : (b/1048576).toFixed(1)+" MB";
-
-      const startJob = () => {
-        if (!files.length) return;
-        let progress = 0;
-        const total = files.length;
-        const iv = setInterval(() => {
-          progress++;
-          if (progress >= total) { clearInterval(iv); setJob(prev => ({...prev, status: "done", progress: 1, resultCount: total, currentItem: ""})); return; }
-          setJob(prev => ({...prev, progress: progress/total, currentItem: "🔄 " + files[Math.min(progress, total-1)].name}));
-        }, 500);
-        setJob({
-          status: "running", progress: 0, currentItem: "🔄 " + files[0].name, resultCount: 0,
-          onPause: () => { clearInterval(iv); setJob(prev => ({...prev, status: "paused"})); },
-          onCancel: () => { clearInterval(iv); setJob(prev => ({...prev, status: "cancelled"})); },
-          onResume: () => startJob(),
-          onDownload: () => alert("✅ Tải ZIP thành công!"),
-        });
-      };
-
-      return React.createElement('div', null,
-        React.createElement(ResizeConfig, props),
-        // Drop zone
-        React.createElement('div', {
-          onDragOver: e => { e.preventDefault(); setDragOver(true); },
-          onDragLeave: () => setDragOver(false),
-          onDrop: e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); },
-          onClick: () => fileInputRef.current && fileInputRef.current.click(),
-          style: {
-            border: "2px dashed " + (dragOver ? "#3b82f6" : "rgba(255,255,255,0.1)"),
-            borderRadius: 16, padding: "48px 24px", textAlign: "center", cursor: "pointer",
-            background: dragOver ? "rgba(59,130,246,0.05)" : "rgba(255,255,255,0.01)", marginBottom: 20,
-            transition: "all 0.3s",
-          }
-        },
-          React.createElement('input', { ref: fileInputRef, type: "file", multiple: true, accept: ".jpg,.jpeg,.png,.webp,.zip,.rar", onChange: e => handleFiles(e.target.files), style: { display: "none" } }),
-          React.createElement('div', { style: { width: 56, height: 56, borderRadius: 16, margin: "0 auto 16px", background: "rgba(59,130,246,0.08)", display: "flex", alignItems: "center", justifyContent: "center", color: "#60a5fa" } }, React.createElement(Icon, { name: "upload", size: 28 })),
-          React.createElement('div', { style: { color: "#fff", fontSize: 15, fontWeight: 600, marginBottom: 6 } }, "Kéo thả file vào đây"),
-          React.createElement('div', { style: { color: "rgba(255,255,255,0.35)", fontSize: 13 } }, "Hỗ trợ: JPG, PNG, WebP, ZIP, RAR — Không giới hạn"),
-        ),
-        // File list
-        files.length > 0 && React.createElement('div', { style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, marginBottom: 20, overflow: "hidden" } },
-          React.createElement('div', { style: { padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" } },
-            React.createElement('span', { style: { color: "rgba(255,255,255,0.5)", fontSize: 13 } }, files.length + " file"),
-            React.createElement('button', { onClick: () => setFiles([]), style: { background: "none", border: "none", color: "#f87171", fontSize: 12, cursor: "pointer" } }, "Xóa tất cả"),
-          ),
-          React.createElement('div', { style: { maxHeight: 200, overflowY: "auto" } },
-            ...files.map((f, i) =>
-              React.createElement('div', { key: i, style: { display: "flex", alignItems: "center", gap: 12, padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.03)" } },
-                React.createElement(Icon, { name: "image", size: 14 }),
-                React.createElement('span', { style: { color: "rgba(255,255,255,0.7)", fontSize: 13, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, f.name),
-                React.createElement('span', { style: { color: "rgba(255,255,255,0.25)", fontSize: 12 } }, formatSize(f.size)),
-                React.createElement('button', { onClick: () => setFiles(prev => prev.filter((_,j) => j!==i)), style: { background: "none", border: "none", color: "rgba(255,255,255,0.2)", cursor: "pointer", padding: 2 } }, React.createElement(Icon, { name: "x", size: 14 })),
-              )
-            )
-          ),
-        ),
-        React.createElement('button', {
-          onClick: startJob, disabled: !files.length,
-          style: {
-            width: "100%", padding: 16, borderRadius: 14, border: "none",
-            background: !files.length ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #10b981, #059669)",
-            color: !files.length ? "rgba(255,255,255,0.2)" : "#fff",
-            fontSize: 15, fontWeight: 700, cursor: !files.length ? "not-allowed" : "pointer",
-            boxShadow: files.length ? "0 4px 20px rgba(16,185,129,0.3)" : "none",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }
-        }, React.createElement(Icon, { name: "zap", size: 18 }), " BẮT ĐẦU RESIZE"),
-        React.createElement(JobProgress, { job }),
-      );
-    }
-
-    // ============================================================
-    // WEB TAB
-    // ============================================================
-    function WebTab(props) {
-      const [links, setLinks] = useState("");
-      const [scanned, setScanned] = useState([]);
-      const [scanning, setScanning] = useState(false);
-      const [job, setJob] = useState(null);
-
-      const mockScan = () => {
-        const list = links.split("\n").filter(l => l.trim());
-        if (!list.length) return;
-        setScanning(true);
-        setTimeout(() => {
-          setScanned(list.map((l, i) => ({
-            id: i, name: "Sản phẩm " + (i+1) + " — " + (l.includes("thegioididong") ? "TGDD" : l.includes("dienmayxanh") ? "DMX" : "Web"), link: l,
-            colors: [{ name: "Đen", selected: true }, { name: "Trắng", selected: true }, { name: "Bạc", selected: false }],
-          })));
-          setScanning(false);
-        }, 1200);
-      };
-
-      const toggleColor = (pi, ci) => {
-        setScanned(prev => prev.map((p, i) => i === pi ? {...p, colors: p.colors.map((c, j) => j === ci ? {...c, selected: !c.selected} : c)} : p));
-      };
-
-      const startJob = () => {
-        const tasks = scanned.flatMap(p => p.colors.filter(c => c.selected).map(c => ({p: p.name, c: c.name})));
-        if (!tasks.length) return;
-        let prog = 0;
-        const iv = setInterval(() => {
-          prog++;
-          if (prog >= tasks.length) { clearInterval(iv); setJob(prev => ({...prev, status: "done", progress: 1, resultCount: tasks.length * 6, currentItem: ""})); return; }
-          setJob(prev => ({...prev, progress: prog/tasks.length, currentItem: tasks[prog].p + " — " + tasks[prog].c}));
-        }, 800);
-        setJob({ status: "running", progress: 0, currentItem: tasks[0].p + " — " + tasks[0].c, resultCount: 0,
-          onPause: () => { clearInterval(iv); setJob(prev => ({...prev, status: "paused"})); },
-          onCancel: () => { clearInterval(iv); setJob(prev => ({...prev, status: "cancelled"})); },
-          onResume: () => startJob(), onDownload: () => alert("✅ Tải ZIP thành công!"),
-        });
-      };
-
-      return React.createElement('div', null,
-        React.createElement(ResizeConfig, props),
-        // Info
-        React.createElement('div', { style: { background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.15)", borderRadius: 12, padding: "14px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 } },
-          React.createElement(Icon, { name: "info", size: 16 }),
-          React.createElement('span', { style: { color: "rgba(255,255,255,0.6)", fontSize: 13 } }, "Hỗ trợ crawl từ Thế Giới Di Động, Điện Máy Xanh, và các website có gallery ảnh."),
-        ),
-        // Input
-        React.createElement('div', { style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 24, marginBottom: 20 } },
-          React.createElement('textarea', { value: links, onChange: e => setLinks(e.target.value), rows: 4, placeholder: "Dán link sản phẩm (mỗi link 1 dòng)\n\nhttps://www.thegioididong.com/dtdd/iphone-16-pro-max", style: { width: "100%", padding: "14px 16px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, outline: "none", resize: "vertical", lineHeight: 1.6, boxSizing: "border-box", fontFamily: "'DM Sans', monospace" } }),
-          React.createElement('button', { onClick: mockScan, disabled: !links.trim() || scanning, style: { marginTop: 12, padding: "12px 24px", borderRadius: 10, border: "none", background: scanning ? "rgba(255,255,255,0.05)" : "rgba(139,92,246,0.15)", color: scanning ? "rgba(255,255,255,0.3)" : "#a78bfa", fontSize: 14, fontWeight: 600, cursor: scanning ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 8 } }, scanning ? "⏳ Đang quét..." : "🔍 Quét sản phẩm & màu"),
-        ),
-        // Scanned
-        scanned.length > 0 && React.createElement('div', { style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 24, marginBottom: 20 } },
-          React.createElement('div', { style: { color: "#fff", fontSize: 15, fontWeight: 600, marginBottom: 16 } }, "🎨 Chọn màu (" + scanned.length + " sản phẩm)"),
-          ...scanned.map((p, pi) =>
-            React.createElement('div', { key: p.id, style: { padding: "14px 0", borderBottom: pi < scanned.length-1 ? "1px solid rgba(255,255,255,0.05)" : "none" } },
-              React.createElement('div', { style: { color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600, marginBottom: 10 } }, "📦 " + p.name),
-              React.createElement('div', { style: { display: "flex", flexWrap: "wrap", gap: 8 } },
-                ...p.colors.map((c, ci) =>
-                  React.createElement('button', { key: ci, onClick: () => toggleColor(pi, ci), style: { padding: "6px 14px", borderRadius: 8, border: c.selected ? "1.5px solid #3b82f6" : "1px solid rgba(255,255,255,0.1)", background: c.selected ? "rgba(59,130,246,0.1)" : "transparent", color: c.selected ? "#60a5fa" : "rgba(255,255,255,0.4)", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 } },
-                    c.selected && React.createElement(Icon, { name: "check", size: 12 }), " " + c.name
-                  )
-                )
-              ),
-            )
-          ),
-        ),
-        scanned.length > 0 && React.createElement('button', {
-          onClick: startJob, disabled: job && job.status === "running",
-          style: { width: "100%", padding: 16, borderRadius: 14, border: "none", background: "linear-gradient(135deg, #8b5cf6, #ec4899)", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 20px rgba(139,92,246,0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }
-        }, React.createElement(Icon, { name: "zap", size: 18 }), " TẢI & RESIZE TẤT CẢ"),
-        React.createElement(JobProgress, { job }),
-      );
-    }
-
-    // ============================================================
-    // HISTORY TAB
-    // ============================================================
-    function HistoryTab() {
-      const data = [
-        { id: 1, time: "20/04/2026 14:32", mode: "Google Drive", items: 24, size: "12.4 MB", status: "done", preset: "1020×680" },
-        { id: 2, time: "20/04/2026 11:08", mode: "Web Crawl", items: 45, size: "28.7 MB", status: "done", preset: "1200×1200" },
-        { id: 3, time: "19/04/2026 16:55", mode: "Local Upload", items: 12, size: "5.2 MB", status: "cancelled", preset: "1080×1080" },
-        { id: 4, time: "19/04/2026 09:20", mode: "Google Drive", items: 8, size: "3.8 MB", status: "done", preset: "800×800" },
-        { id: 5, time: "18/04/2026 15:45", mode: "Web Crawl", items: 60, size: "35.1 MB", status: "done", preset: "1020×570" },
-      ];
-      return React.createElement('div', null,
-        React.createElement('h3', { style: { color: "#fff", fontSize: 18, fontWeight: 700, marginBottom: 20 } }, "📋 Lịch sử xử lý"),
-        React.createElement('div', { style: { display: "flex", flexDirection: "column", gap: 8 } },
-          ...data.map(h =>
-            React.createElement('div', { key: h.id, style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16, animation: "slideIn 0.3s ease" } },
-              React.createElement('div', { style: { width: 40, height: 40, borderRadius: 10, background: h.status==="done" ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: h.status==="done" ? "#34d399" : "#f87171", flexShrink: 0 } }, React.createElement(Icon, { name: h.status==="done" ? "check" : "x", size: 18 })),
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement('div', { style: { color: "#fff", fontSize: 14, fontWeight: 600 } }, h.mode),
-                React.createElement('div', { style: { color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 2 } }, h.time + " · " + h.preset),
-              ),
-              React.createElement('div', { style: { textAlign: "right", flexShrink: 0 } },
-                React.createElement('div', { style: { color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 600 } }, h.items + " ảnh"),
-                React.createElement('div', { style: { color: "rgba(255,255,255,0.3)", fontSize: 12 } }, h.size),
-              ),
-              h.status==="done" && React.createElement('button', { style: { padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(59,130,246,0.2)", background: "rgba(59,130,246,0.08)", color: "#60a5fa", cursor: "pointer", flexShrink: 0 } }, React.createElement(Icon, { name: "download", size: 14 })),
-            )
-          )
-        ),
-      );
-    }
-
-    // ============================================================
-    // SETTINGS TAB
-    // ============================================================
-    function SettingsTab() {
-      const [quality, setQuality] = useState(95);
-      const [workers, setWorkers] = useState(5);
-      return React.createElement('div', null,
-        React.createElement('h3', { style: { color: "#fff", fontSize: 18, fontWeight: 700, marginBottom: 24 } }, "⚙️ Cài đặt"),
-        React.createElement('div', { style: { display: "flex", flexDirection: "column", gap: 16 } },
-          // Quality
-          React.createElement('div', { style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: 20 } },
-            React.createElement('div', { style: { display: "flex", justifyContent: "space-between", marginBottom: 12 } },
-              React.createElement('div', null, React.createElement('div', { style: { color: "#fff", fontSize: 14, fontWeight: 600 } }, "Chất lượng JPEG"), React.createElement('div', { style: { color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 2 } }, "60 (nhẹ) → 100 (max)")),
-              React.createElement('span', { style: { color: "#60a5fa", fontSize: 20, fontWeight: 700 } }, quality),
-            ),
-            React.createElement('input', { type: "range", min: 60, max: 100, value: quality, onChange: e => setQuality(+e.target.value), style: { width: "100%", accentColor: "#3b82f6" } }),
-          ),
-          // Workers
-          React.createElement('div', { style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: 20 } },
-            React.createElement('div', { style: { display: "flex", justifyContent: "space-between", marginBottom: 12 } },
-              React.createElement('div', null, React.createElement('div', { style: { color: "#fff", fontSize: 14, fontWeight: 600 } }, "Xử lý song song"), React.createElement('div', { style: { color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 2 } }, "Số luồng đồng thời")),
-              React.createElement('span', { style: { color: "#60a5fa", fontSize: 20, fontWeight: 700 } }, workers),
-            ),
-            React.createElement('input', { type: "range", min: 1, max: 10, value: workers, onChange: e => setWorkers(+e.target.value), style: { width: "100%", accentColor: "#3b82f6" } }),
-          ),
-          // API Status
-          React.createElement('div', { style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: 20 } },
-            React.createElement('div', { style: { color: "#fff", fontSize: 14, fontWeight: 600, marginBottom: 12 } }, "Google Drive API"),
-            React.createElement('div', { style: { padding: "10px 14px", borderRadius: 10, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", color: "#34d399", fontSize: 13, display: "flex", alignItems: "center", gap: 8 } }, React.createElement(Icon, { name: "check", size: 14 }), " Service Account đã kết nối"),
-          ),
-        ),
-      );
-    }
-
-    // ============================================================
-    // ADMIN TAB
-    // ============================================================
-    function AdminTab() {
-      return React.createElement('div', null,
-        React.createElement('h3', { style: { color: "#fff", fontSize: 18, fontWeight: 700, marginBottom: 24 } }, "👥 Quản lý"),
-        // Stats
-        React.createElement('div', { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 } },
-          ...[{ l: "Tổng ảnh xử lý", v: "2,847", c: "#3b82f6" }, { l: "Dung lượng tiết kiệm", v: "1.2 GB", c: "#10b981" }, { l: "Job tháng này", v: "143", c: "#8b5cf6" }].map((s, i) =>
-            React.createElement('div', { key: i, style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: 20, textAlign: "center" } },
-              React.createElement('div', { style: { color: s.c, fontSize: 28, fontWeight: 800 } }, s.v),
-              React.createElement('div', { style: { color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 4 } }, s.l),
-            )
-          )
-        ),
-        // Users table
-        React.createElement('div', { style: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden" } },
-          ...DEFAULT_USERS.map((u, i) =>
-            React.createElement('div', { key: u.id, style: { display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: i < DEFAULT_USERS.length-1 ? "1px solid rgba(255,255,255,0.04)" : "none" } },
-              React.createElement('div', { style: { width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #6366f1, #ec4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 } }, u.avatar),
-              React.createElement('div', { style: { flex: 1 } },
-                React.createElement('div', { style: { color: "#fff", fontSize: 14, fontWeight: 600 } }, u.name),
-                React.createElement('div', { style: { color: "rgba(255,255,255,0.3)", fontSize: 12 } }, u.username),
-              ),
-              React.createElement('span', { style: { padding: "3px 10px", borderRadius: 6, background: u.role==="admin" ? "rgba(239,68,68,0.1)" : "rgba(59,130,246,0.1)", color: u.role==="admin" ? "#f87171" : "#60a5fa", fontSize: 12, fontWeight: 600 } }, u.role),
-            )
-          )
-        ),
-      );
-    }
-
-    // ============================================================
-    // SIDEBAR
-    // ============================================================
-    function Sidebar({ active, setActive, user, onLogout, collapsed, setCollapsed }) {
-      const tabs = [
-        { id: "drive", icon: "drive", label: "Google Drive" },
-        { id: "local", icon: "upload", label: "Upload Local" },
-        { id: "web", icon: "globe", label: "Crawl Website" },
-        { id: "history", icon: "history", label: "Lịch sử" },
-        { id: "settings", icon: "settings", label: "Cài đặt" },
-      ];
-      if (user.role === "admin") tabs.push({ id: "admin", icon: "users", label: "Quản lý" });
-
-      return React.createElement('div', { style: {
-        width: collapsed ? 72 : 260, minHeight: "100vh",
-        background: "linear-gradient(180deg, #0c1222 0%, #111827 100%)",
-        borderRight: "1px solid rgba(255,255,255,0.06)",
-        display: "flex", flexDirection: "column",
-        transition: "width 0.3s cubic-bezier(0.4,0,0.2,1)", flexShrink: 0,
-      }},
-        // Header
-        React.createElement('div', { style: { padding: collapsed ? "20px 16px" : "20px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 12, justifyContent: collapsed ? "center" : "flex-start" } },
-          React.createElement('div', { style: { width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flexShrink: 0 } }, React.createElement(Icon, { name: "zap", size: 18 })),
-          !collapsed && React.createElement('div', null,
-            React.createElement('div', { style: { color: "#fff", fontSize: 16, fontWeight: 700 } }, "Media Pro"),
-            React.createElement('div', { style: { color: "rgba(255,255,255,0.3)", fontSize: 11 } }, "v2.0"),
-          ),
-        ),
-        // Collapse btn
-        React.createElement('button', {
-          onClick: () => setCollapsed(!collapsed),
-          style: { position: "absolute", left: (collapsed ? 72 : 260) - 14, top: 28, width: 28, height: 28, borderRadius: "50%", background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, transition: "left 0.3s cubic-bezier(0.4,0,0.2,1)" }
-        }, collapsed ? "→" : "←"),
-        // Nav
-        React.createElement('div', { style: { flex: 1, padding: "16px 12px", display: "flex", flexDirection: "column", gap: 4 } },
-          ...tabs.map(t =>
-            React.createElement('button', {
-              key: t.id, onClick: () => setActive(t.id),
-              style: {
-                display: "flex", alignItems: "center", gap: 12,
-                padding: collapsed ? "12px" : "11px 16px", borderRadius: 10, border: "none",
-                background: active === t.id ? "rgba(59,130,246,0.12)" : "transparent",
-                color: active === t.id ? "#60a5fa" : "rgba(255,255,255,0.45)",
-                cursor: "pointer", fontSize: 14, fontWeight: 500, width: "100%",
-                justifyContent: collapsed ? "center" : "flex-start", textAlign: "left",
-              }
-            }, React.createElement(Icon, { name: t.icon, size: 18 }), !collapsed && " " + t.label)
-          )
-        ),
-        // User
-        React.createElement('div', { style: { padding: collapsed ? "16px 12px" : "16px 20px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 12, justifyContent: collapsed ? "center" : "flex-start" } },
-          React.createElement('div', { style: { width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #6366f1, #ec4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 } }, user.avatar),
-          !collapsed && React.createElement(React.Fragment, null,
-            React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-              React.createElement('div', { style: { color: "#fff", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, user.name),
-              React.createElement('div', { style: { color: "rgba(255,255,255,0.3)", fontSize: 11, textTransform: "uppercase" } }, user.role),
-            ),
-            React.createElement('button', { onClick: onLogout, style: { background: "none", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer", padding: 4 } }, React.createElement(Icon, { name: "logout", size: 18 })),
-          ),
-        ),
-      );
-    }
-
-    // ============================================================
-    // DASHBOARD
-    // ============================================================
-    function Dashboard({ user, onLogout }) {
-      const [active, setActive] = useState("drive");
-      const [collapsed, setCollapsed] = useState(false);
-      const [preset, setPreset] = useState("1020x680");
-      const [customW, setCustomW] = useState("1000");
-      const [customH, setCustomH] = useState("1000");
-      const resizeProps = { preset, setPreset, customW, setCustomW, customH, setCustomH };
-      const titles = { drive: ["Google Drive", "Tải & resize ảnh từ Google Drive"], local: ["Upload Local", "Upload ảnh từ máy tính"], web: ["Crawl Website", "Crawl ảnh sản phẩm TGDD/DMX"], history: ["Lịch sử", "Các job đã xử lý"], settings: ["Cài đặt", "Tùy chỉnh hệ thống"], admin: ["Quản lý", "Users & thống kê"] };
-
-      return React.createElement('div', { style: { display: "flex", minHeight: "100vh", background: "#0a0f1a", color: "#fff", position: "relative" } },
-        React.createElement(Sidebar, { active, setActive, user, onLogout, collapsed, setCollapsed }),
-        React.createElement('div', { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column" } },
-          // Top bar
-          React.createElement('div', { style: { padding: "16px 32px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" } },
-            React.createElement('div', null,
-              React.createElement('h2', { style: { margin: 0, fontSize: 20, fontWeight: 700 } }, (titles[active]||[])[0]),
-              React.createElement('p', { style: { margin: "2px 0 0", fontSize: 13, color: "rgba(255,255,255,0.35)" } }, (titles[active]||[])[1]),
-            ),
-            React.createElement('div', { style: { padding: "6px 14px", borderRadius: 20, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", color: "#34d399", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 } },
-              React.createElement('div', { style: { width: 6, height: 6, borderRadius: "50%", background: "#34d399", animation: "pulse 2s infinite" } }), "Online"
-            ),
-          ),
-          // Content
-          React.createElement('div', { style: { flex: 1, padding: "28px 32px", overflowY: "auto", maxWidth: 920 } },
-            active === "drive" && React.createElement(DriveTab, resizeProps),
-            active === "local" && React.createElement(LocalTab, resizeProps),
-            active === "web" && React.createElement(WebTab, resizeProps),
-            active === "history" && React.createElement(HistoryTab),
-            active === "settings" && React.createElement(SettingsTab),
-            active === "admin" && React.createElement(AdminTab),
-          ),
-        ),
-      );
-    }
-
-    // ============================================================
-    // APP ROOT
-    // ============================================================
-    function App() {
-      const [user, setUser] = useState(null);
-      if (!user) return React.createElement(LoginScreen, { onLogin: setUser });
-      return React.createElement(Dashboard, { user, onLogout: () => setUser(null) });
-    }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
-  </script>
+/* ===== APP ===== */
+function App(){
+  const[user,setUser]=useState(null);
+  if(!user)return React.createElement(Login,{onLogin:setUser});
+  return React.createElement(Dash,{user,out:()=>setUser(null)});
+}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
 </body>
 </html>
